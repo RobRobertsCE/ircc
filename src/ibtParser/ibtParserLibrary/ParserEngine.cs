@@ -38,13 +38,77 @@ namespace ibtParserLibrary
                 }
             }
             public Int32 Position { get; set; }
+
+        }
+
+        public class TelemFieldValue
+        {
+            public string Name { get; set; }
+            public string Description { get; set; }
+            public string Unit { get; set; }
+            public Int32 DataType { get; set; }
+            public int Size
+            {
+                get
+                {
+                    if (DataType == 1) // 1 = bool
+                        return 1;
+                    else if (DataType == 2) // 2 = int?
+                        return 4;
+                    else if (DataType == 3) // 3 = irsdk_EngineWarnings only
+                        return 4;
+                    else if (DataType == 4) // 4 = float?
+                        return 4;
+                    else if (DataType == 5) // 5 = float?
+                        return 8;
+                    else
+                        return 0;
+                }
+            }
+            public Int32 Position { get; set; }
+
+            private string _value = String.Empty;
+            public string Value
+            {
+                get
+                {
+                    if (String.IsNullOrEmpty(_value))
+                    {
+                        StringBuilder sb = new StringBuilder();
+
+                        for (int s = 0; s < bytes.Count(); s++)
+                        {
+                            var hexString = bytes[s].ToString("X");
+                            hexString = (hexString.Length % 2 == 0 ? "" : "0") + hexString + " ";
+                            sb.Append(hexString);
+                        }
+                        _value = sb.ToString();
+                    }
+                    return _value;
+                }
+                set
+                {
+                    _value = value;
+                }
+            }
             public byte[] bytes
             {
                 get; set;
             }
         }
 
+        public class TelemetryOutput
+        {
+            public IList<TelemFieldValue> FieldValues { get; set; }
+
+            public TelemetryOutput()
+            {
+                FieldValues = new List<TelemFieldValue>();
+            }
+        }
+
         public static IList<FieldDescription> Fields;
+        public static IList<TelemetryOutput> TelemSession;
 
         const byte NUL = 0;
         const byte SOH = 1;
@@ -132,49 +196,49 @@ namespace ibtParserLibrary
 
                 idx += 16;
 
-                Console.WriteLine("Starting data parse at position {0}", idx);
+                //Console.WriteLine("Starting data parse at position {0}", idx);
 
-                // 561? 556?
+                //// 561? 556?
 
-                byte[] sampleBytes = new byte[561];
-                Array.Copy(ibtBytes, idx, sampleBytes, 0, 561);
-                
-                foreach (FieldDescription field in Fields)
-                {
-                    byte[] fieldBytes = new byte[field.Size];
-                    Array.Copy(ibtBytes, field.Position, fieldBytes, 0, field.Size);
+                //byte[] sampleBytes = new byte[561];
+                //Array.Copy(ibtBytes, idx, sampleBytes, 0, 561);
 
-                    field.bytes = fieldBytes;
+                //foreach (FieldDescription field in Fields)
+                //{
+                //    byte[] fieldBytes = new byte[field.Size];
+                //    Array.Copy(ibtBytes, field.Position, fieldBytes, 0, field.Size);
 
-                    var valString = String.Empty;
-                    if (field.DataType == 1)
-                    {
-                        var i = BitConverter.ToBoolean(fieldBytes, 0);
-                        valString = i.ToString();
-                    }
-                    else if (field.DataType == 2)
-                    {
-                        var i = BitConverter.ToSingle(fieldBytes, 0);
-                        valString = i.ToString();
-                    }
-                    else if (field.DataType == 3)
-                    {
-                        var i = BitConverter.ToSingle(fieldBytes, 0);
-                        valString = i.ToString();
-                    }
-                    else if (field.DataType == 4)
-                    {
-                        var i = ToSmallDecimal(fieldBytes);
-                        //var i = BitConverter.ToSingle(fieldBytes, 0);
-                        valString = i.ToString();
-                    }
-                    else if (field.DataType == 5)
-                    {
-                        var i = BitConverter.ToDouble(fieldBytes, 0);
-                        valString = i.ToString();
-                    }
-                    Console.WriteLine("{0} {1}", field.Name, valString);
-                }
+                //    field.bytes = fieldBytes;
+
+                //    var valString = String.Empty;
+                //    if (field.DataType == 1)
+                //    {
+                //        var i = BitConverter.ToBoolean(fieldBytes, 0);
+                //        valString = i.ToString();
+                //    }
+                //    else if (field.DataType == 2)
+                //    {
+                //        var i = BitConverter.ToSingle(fieldBytes, 0);
+                //        valString = i.ToString();
+                //    }
+                //    else if (field.DataType == 3)
+                //    {
+                //        var i = BitConverter.ToSingle(fieldBytes, 0);
+                //        valString = i.ToString();
+                //    }
+                //    else if (field.DataType == 4)
+                //    {
+                //        var i = ToSmallDecimal(fieldBytes);
+                //        //var i = BitConverter.ToSingle(fieldBytes, 0);
+                //        valString = i.ToString();
+                //    }
+                //    else if (field.DataType == 5)
+                //    {
+                //        var i = BitConverter.ToDouble(fieldBytes, 0);
+                //        valString = i.ToString();
+                //    }
+                //    Console.WriteLine("{0} {1}", field.Name, valString);
+                //}
             }
             catch (Exception ex)
             {
@@ -198,7 +262,7 @@ namespace ibtParserLibrary
 
             Fields.Add(field);
 
-            //Console.WriteLine("{0,-3}) {1,-32} {2,-64} {3,-32} {4,-4} {5,-4}", Fields.Count.ToString(), field.Name, field.Description, field.Unit, field.DataType.ToString(), field.Position.ToString());
+            // Console.WriteLine("{0,-3}) {1,-32} {2,-64} {3,-32} {4,-4} {5,-4}", Fields.Count.ToString(), field.Name, field.Description, field.Unit, field.DataType.ToString(), field.Position.ToString());
         }
 
         static string GetTextFromBytes(byte[] bytes, int start, int length)
@@ -228,14 +292,17 @@ namespace ibtParserLibrary
 
         public static void runtest()
         {
-            decimal d = -12.34M;
+            decimal d = 6871.017M;
             byte[] b = GetBytes(d);
             for (int i = 0; i < b.Length; i++)
             {
-                Console.WriteLine(b[i].ToString());
+                Console.Write(b[i].ToString("X"));
+                Console.Write(" ");
             }
+            Console.WriteLine();
             decimal d2 = ToDecimal(b);
         }
+
         public static decimal ToSmallDecimal(byte[] bytes)
         {
             int[] bits = new int[1];
@@ -287,6 +354,179 @@ namespace ibtParserLibrary
             bytes[15] = (byte)(flags >> 0x18);
 
             return bytes;
+        }
+
+
+        public static void FindFieldPattern(string fileName)
+        {
+            try
+            {
+                int dataStartIdx = 2;
+
+                ibtBytes = System.IO.File.ReadAllBytes(fileName);
+                Fields = new List<FieldDescription>();
+                fieldCount = GetIntFromBytes(ibtBytes, FieldCountStart, FieldCountLength);
+
+                // 20th group of 8 bytes starts the field descriptions
+
+                // ReSharper disable once ForCanBeConvertedToForeach
+                // ReSharper disable once SuggestVarOrType_BuiltInTypes
+                int idx = 0;
+                for (int i = 0; i < fieldCount; i++) // for (int i = 0; i < ibtBytes.Length; i++)
+                {
+                    idx = 144 + (144 * i);
+                    ParseFieldDescription(idx);
+                }
+
+                // skip text for now, log for three 46's in a row.
+
+                idx++;
+                while (true)
+                {
+                    idx++;
+                    if (ibtBytes[idx] == 46)
+                    {
+                        if ((ibtBytes[idx + 1] == 46) && (ibtBytes[idx + 2] == 46))
+                        {
+                            idx += 2;
+                            break;
+                        }
+                    }
+                }
+
+                dataStartIdx += idx;
+
+                // we're at the field data section here...
+                Console.WriteLine("Data values start at position {0}", dataStartIdx);
+                var valueLength = ibtBytes.Length - dataStartIdx;
+
+                byte[] v = new byte[valueLength];
+                Array.Copy(ibtBytes, dataStartIdx, v, 0, valueLength);
+
+                ParseValueSection(v, dataStartIdx);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+
+        static void ParseValueSection(byte[] v, int rootIdx)
+        {
+            
+
+            var width = Fields.Max((f) => f.Position + f.Size) ; // 645;// 561;
+            var startIdx = 0;
+            var frameCount = (width / v.Length);
+            List<Byte> startBytes = null;
+            List<byte[]> byteSets = new List<Byte[]>();
+
+            while (true)
+            {
+                startBytes = new List<Byte>();
+                byte[] byteSet;
+
+                for (int z = startIdx; z < v.Length; z += width)
+                {
+                    byteSet = new byte[width];
+                    Array.Copy(v, z, byteSet, 0, width);
+                    byteSets.Add(byteSet);
+                }
+                break;
+            }
+            List<byte> valueBytes = new List<Byte>();
+            for (int s = 0; s < byteSets.Count; s++)
+            {
+                valueBytes.AddRange(byteSets[s].ToArray());
+                byte cr = 10;
+                byte lf = 13;
+                valueBytes.Add(cr);
+                valueBytes.Add(lf);
+            }
+            System.IO.File.WriteAllBytes(@"C:\Users\rroberts\Source\Repos\ircc\src\ibtParser\ibtParserLibrary\Samples\dumpsk2.4.txt", valueBytes.ToArray());
+
+            TelemSession = new List<TelemetryOutput>();
+            for (int s = 0; s < byteSets.Count; s++)
+            {
+                var telemLine = new TelemetryOutput();
+
+                foreach (FieldDescription field in Fields)
+                {
+                    TelemFieldValue fv = new TelemFieldValue();
+                    fv.Name = field.Name;
+                    fv.DataType = field.DataType;
+                    fv.Description = field.Description;
+                    fv.Position = field.Position;
+                    fv.bytes = new byte[fv.Size];
+                    Array.Copy(byteSets[s], fv.Position, fv.bytes, 0, fv.Size);
+
+                    telemLine.FieldValues.Add(fv);
+                }
+
+                TelemSession.Add(telemLine);
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            foreach (TelemetryOutput tout in TelemSession)
+            {
+                foreach (TelemFieldValue tfv in tout.FieldValues)
+                {
+                    sb.AppendFormat("{0}: {1} ", tfv.Name, tfv.Value);
+                    if (tfv.DataType == 1)
+                    {
+                        var val = BitConverter.ToBoolean(tfv.bytes, 0);
+                        sb.AppendFormat("[{0}] ", val);
+                    }
+                    else if (tfv.DataType == 2)
+                    {
+                        var val = BitConverter.ToInt16(tfv.bytes, 0);
+                        sb.AppendFormat("[{0}] ", val);
+                    }
+                    else if (tfv.DataType == 3)
+                    {
+                        var val = BitConverter.ToInt16(tfv.bytes, 0);
+                        sb.AppendFormat("[{0}] ", val);
+                    }
+                    else if (tfv.DataType == 4)
+                    {
+                        var val = BitConverter.ToSingle(tfv.bytes, 0);
+                        sb.AppendFormat("[{0}] ", val);
+                    }
+                    else if (tfv.DataType == 5)
+                    {
+                        var val = BitConverter.ToDouble(tfv.bytes, 0);
+                        sb.AppendFormat("[{0}] ", val);
+                    }
+                }
+                sb.AppendLine();
+            }
+            System.IO.File.WriteAllText(@"C:\Users\rroberts\Source\Repos\ircc\src\ibtParser\ibtParserLibrary\Samples\dumpsk2.5.txt", sb.ToString());
+
+        }
+
+        static public int SearchBytePattern(byte[] pattern, byte[] bytes)
+        {
+            int matches = 0;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                if (pattern[0] == bytes[i] && bytes.Length - i >= pattern.Length)
+                {
+                    bool ismatch = true;
+                    for (int j = 1; j < pattern.Length && ismatch == true; j++)
+                    {
+                        if (bytes[i + j] != pattern[j])
+                            ismatch = false;
+                    }
+                    if (ismatch)
+                    {
+                        matches++;
+                        i += pattern.Length - 1;
+                    }
+                }
+            }
+            return matches;
         }
     }
 }

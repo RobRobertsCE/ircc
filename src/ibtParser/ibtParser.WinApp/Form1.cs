@@ -19,6 +19,10 @@ namespace ibtParser.WinApp
 
         private const string SampleFile2 =
             @"C:\Users\rroberts\Source\Repos\ircc\src\ibtParser\ibtParserLibrary\Samples\skmodified_langley 2015-05-28 14-45-12.ibt";
+        private const string SampleFilesk =
+           @"C:\Users\rroberts\Source\Repos\ircc\src\ibtParser\ibtParserLibrary\Samples\sk.ibt";
+        private const string SampleFilesk2 =
+           @"C:\Users\rroberts\Source\Repos\ircc\src\ibtParser\ibtParserLibrary\Samples\sk2.ibt";
 
         public Form1()
         {
@@ -27,12 +31,22 @@ namespace ibtParser.WinApp
 
         private void button1_Click(object sender, EventArgs e)
         {
-            ParserEngine.ParseFile(SampleFile);
+            ParserEngine.ParseFile(SampleFilesk2);
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
             ParserEngine.runtest();
+        }
+
+        private void btnPattern_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog dialog = new OpenFileDialog();
+            dialog.DefaultExt = ".ibt";
+            if ( dialog.ShowDialog() == DialogResult.OK)
+            {
+                ParserEngine.FindFieldPattern(dialog.FileName);
+            }            
         }
     }
 }

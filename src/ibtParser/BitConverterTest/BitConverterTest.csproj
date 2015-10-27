@@ -4,15 +4,17 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{2F10FFA2-4EC3-43F2-9D49-F954BAB79D7D}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{ABD17BCB-00AF-44DB-A6D7-68D9C6413A1A}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ibtParserLibrary</RootNamespace>
-    <AssemblyName>ibtParserLibrary</AssemblyName>
+    <RootNamespace>BitConverterTest</RootNamespace>
+    <AssemblyName>BitConverterTest</AssemblyName>
     <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +24,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -40,27 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ParserEngine.cs" />
+    <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Samples\sk.ibt" />
-    <None Include="Samples\sk2.ibt" />
-    <None Include="Samples\skmodified tour_martinsville 2015-05-30 20-32-44.ibt" />
-    <None Include="Samples\skmodified_langley 2015-05-28 14-45-12.ibt" />
-    <None Include="Samples\skmodified_langley 2015-05-28 14-45-28.ibt" />
-    <None Include="Samples\skmodified_langley 2015-05-28 14-46-23.ibt" />
-    <None Include="Samples\skmodified_langley 2015-05-28 14-47-39.ibt" />
-    <None Include="Samples\skmodified_langley 2015-05-28 14-48-39.ibt" />
-    <None Include="Samples\skmodified_langley 2015-05-28 14-49-50.ibt" />
-    <None Include="Samples\skmodified_langley 2015-05-28 14-50-46.ibt" />
-    <None Include="Samples\skmodified_langley 2015-08-24 20-48-50.ibt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Notes.txt" />
-    <Content Include="Samples\dump.txt" />
-    <Content Include="Samples\dump2.txt" />
-    <Content Include="Samples\dump3.txt" />
+    <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
