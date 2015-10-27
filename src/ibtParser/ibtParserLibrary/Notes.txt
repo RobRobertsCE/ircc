@@ -1,0 +1,3 @@
+﻿//        Throttle                        0=off throttle to 1=full throttle                               %                                  3   (3 = start position, or 51)
+        //        Clutch                          0=disengaged to 1=fully engaged                                 %                                  ;   (; = start position, or 59)
+        //        Gear                            -1=reverse  0=neutral  1..n=current gear                                                           ?   (? = start position, or 63)
