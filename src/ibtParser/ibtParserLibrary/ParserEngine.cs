@@ -8,12 +8,8 @@ namespace ibtParserLibrary
 {
     public class ParserEngine
     {
-        // 3 header lines
-        // 1- start with SOH NULL NULL NULL SOH NULL NULL NULL,  end with EOT NULL NULL NULL
-        // 2- start with SOH NULL NULL SOH NULL NULL NULL,  end with EOT NULL NULL NULL
-        // 3- start with STX NULL NULL SOH NULL NULL NULL, end with ---
-        // data lines:
-        public class FieldDescription
+        #region classes
+        public class TelemetryFieldDefinition
         {
             public string Name { get; set; }
             public string Description { get; set; }
@@ -38,221 +34,310 @@ namespace ibtParserLibrary
                 }
             }
             public Int32 Position { get; set; }
-
         }
 
-        public class TelemFieldValue
+        public class TelemetryFieldValue
         {
-            public string Name { get; set; }
-            public string Description { get; set; }
-            public string Unit { get; set; }
-            public Int32 DataType { get; set; }
-            public int Size
-            {
-                get
-                {
-                    if (DataType == 1) // 1 = bool
-                        return 1;
-                    else if (DataType == 2) // 2 = int?
-                        return 4;
-                    else if (DataType == 3) // 3 = irsdk_EngineWarnings only
-                        return 4;
-                    else if (DataType == 4) // 4 = float?
-                        return 4;
-                    else if (DataType == 5) // 5 = float?
-                        return 8;
-                    else
-                        return 0;
-                }
-            }
-            public Int32 Position { get; set; }
+            #region props
+            public TelemetryFieldDefinition Definition { get; set; }
 
-            private string _value = String.Empty;
             public string Value
             {
                 get
                 {
-                    if (String.IsNullOrEmpty(_value))
-                    {
-                        StringBuilder sb = new StringBuilder();
-
-                        for (int s = 0; s < bytes.Count(); s++)
-                        {
-                            var hexString = bytes[s].ToString("X");
-                            hexString = (hexString.Length % 2 == 0 ? "" : "0") + hexString + " ";
-                            sb.Append(hexString);
-                        }
-                        _value = sb.ToString();
-                    }
-                    return _value;
-                }
-                set
-                {
-                    _value = value;
+                    return GetFieldValue().ToString();
                 }
             }
+
+            public string ByteString
+            {
+                get
+                {
+                    StringBuilder sb = new StringBuilder();
+                    for (int s = 0; s < Bytes.Count(); s++)
+                    {
+                        var hexString = Bytes[s].ToString("X");
+                        hexString = (hexString.Length % 2 == 0 ? "" : "0") + hexString + " ";
+                        sb.Append(hexString);
+                    }
+                    return sb.ToString();
+                }
+            }
+
+            public byte[] Bytes
+            {
+                get; set;
+            }
+            #endregion
+
+            #region ctor
+            public TelemetryFieldValue()
+            {
+
+            }
+            public TelemetryFieldValue(TelemetryFieldDefinition definition)
+            {
+                this.Definition = definition;
+            }
+            #endregion
+
+            #region private methods
+            object GetFieldValue()
+            {
+                object fieldValue = null;
+
+                switch (Definition.DataType)
+                {
+                    case 1:
+                        {
+                            fieldValue = BitConverter.ToBoolean(Bytes, 0);
+                            break;
+                        }
+                    case 2:
+                        {
+                            fieldValue = BitConverter.ToInt16(Bytes, 0);
+                            break;
+                        }
+                    case 3:
+                        {
+                            fieldValue = BitConverter.ToInt16(Bytes, 0);
+                            break;
+                        }
+                    case 4:
+                        {
+                            fieldValue = BitConverter.ToSingle(Bytes, 0);
+                            break;
+                        }
+                    case 5:
+                        {
+                            fieldValue = BitConverter.ToDouble(Bytes, 0);
+                            break;
+                        }
+                }
+                return fieldValue;
+            }
+            #endregion
+        }
+
+        public class TelemetryFieldValueOfT<T>
+        {
+            public string Name { get; set; }
+            public string Description { get; set; }
+            public string Unit { get; set; }
+            public Int32 DataType { get; set; }
+            public int Size
+            {
+                get
+                {
+                    if (DataType == 1) // 1 = bool
+                        return 1;
+                    else if (DataType == 2) // 2 = int?
+                        return 4;
+                    else if (DataType == 3) // 3 = irsdk_EngineWarnings only
+                        return 4;
+                    else if (DataType == 4) // 4 = float?
+                        return 4;
+                    else if (DataType == 5) // 5 = float?
+                        return 8;
+                    else
+                        return 0;
+                }
+            }
+            public Int32 Position { get; set; }
+
+            private T _value;
+            public T Value
+            {
+                get
+                {
+                    return GetFieldValue();
+                }
+            }
+
+            public string ByteString
+            {
+                get
+                {
+                    StringBuilder sb = new StringBuilder();
+                    for (int s = 0; s < bytes.Count(); s++)
+                    {
+                        var hexString = bytes[s].ToString("X");
+                        hexString = (hexString.Length % 2 == 0 ? "" : "0") + hexString + " ";
+                        sb.Append(hexString);
+                    }
+                    return sb.ToString();
+                }
+            }
+
             public byte[] bytes
             {
                 get; set;
             }
-        }
 
-        public class TelemetryOutput
-        {
-            public IList<TelemFieldValue> FieldValues { get; set; }
-
-            public TelemetryOutput()
+            T GetFieldValue()
             {
-                FieldValues = new List<TelemFieldValue>();
-            }
-        }
+                object fieldValue = null;
 
-        public static IList<FieldDescription> Fields;
-        public static IList<TelemetryOutput> TelemSession;
-
-        const byte NUL = 0;
-        const byte SOH = 1;
-        const byte STX = 2;
-        const byte EOT = 4;
-        const byte ENQ = 5;
-        const byte ACK = 6;
-        const byte BEL = 7;
-        const byte BS = 8;
-        const byte FF = 12; // form feed - On printers, load the next page. Treated as whitespace in many programming languages, and may be used to separate logical divisions in code. In some terminal emulators, it clears the screen.
-        const byte DLE = 16;
-        const byte DC1 = 17;
-        const byte DC2 = 18;
-        const byte DC3 = 19;
-        const byte DC4 = 20;
-        const byte NAK = 21;
-        const byte EM = 25; // end of medium - Intended as means of indicating on paper or magnetic tapes that the end of the usable portion of the tape had been reached.
-        const byte ESC = 27;
-        const byte GS = 29;
-
-        const byte SS3 = 143; // single shift 3 -  Next character invokes a graphic character from the G2 or G3 graphic sets respectively. In systems that conform to ISO/IEC 4873 (ECMA-43), even if a C1 set other than the default is used, these two octets may only be used for this purpose.
-        const byte DCS = 144; // device control string - Followed by a string of printable characters (0x20 through 0x7E) and format effectors (0x08 through 0x0D), terminated by ST (0x9C).
-
-        private const int FieldDescriptionLength = 144;
-
-        private const int FieldDescriptionLengthStart = 0;
-        private const int FieldDescriptionLengthLength = 2;
-
-        private const int FieldDescriptionPositionStart = 4;
-        private const int FieldDescriptionPositionLength = 2;
-
-        private const int FieldDescriptionNameStart = 16;
-        private const int FieldDescriptionNameLength = 32;
-
-        private const int FieldDescriptionDescriptionStart = 48;
-        private const int FieldDescriptionDescriptionLength = 64;
-
-        private const int FieldDescriptionUnitStart = 112;// FieldDescriptionDescriptionStart + FieldDescriptionDescriptionLength - 8;
-        private const int FieldDescriptionUnitLength = 32;
-
-        private const int FieldCountStart = 24;
-        private const int FieldCountLength = 2;
-
-        private static ASCIIEncoding ascii = new ASCIIEncoding();
-
-        static byte[] ibtBytes;
-
-        static int fieldCount;
-
-        public static void ParseFile(string fileName)
-        {
-            try
-            {
-
-                ibtBytes = System.IO.File.ReadAllBytes(fileName);
-                Fields = new List<FieldDescription>();
-                fieldCount = GetIntFromBytes(ibtBytes, FieldCountStart, FieldCountLength);
-
-                // 20th group of 8 bytes starts the field descriptions
-
-                // ReSharper disable once ForCanBeConvertedToForeach
-                // ReSharper disable once SuggestVarOrType_BuiltInTypes
-                int idx = 0;
-                for (int i = 0; i < fieldCount; i++) // for (int i = 0; i < ibtBytes.Length; i++)
+                switch (DataType)
                 {
-                    idx = 144 + (144 * i);
-                    ParseFieldDescription(idx);
-                }
-
-                // skip text for now, log for three 46's in a row.
-
-                idx++;
-                while (true)
-                {
-                    idx++;
-                    if (ibtBytes[idx] == 46)
-                    {
-                        if ((ibtBytes[idx + 1] == 46) && (ibtBytes[idx + 2] == 46))
+                    case 1:
                         {
-                            idx += 2;
+                            fieldValue = BitConverter.ToBoolean(bytes, 0);
                             break;
                         }
-                    }
+                    case 2:
+                        {
+                            fieldValue = BitConverter.ToInt16(bytes, 0);
+                            break;
+                        }
+                    case 3:
+                        {
+                            fieldValue = BitConverter.ToInt16(bytes, 0);
+                            break;
+                        }
+                    case 4:
+                        {
+                            fieldValue = BitConverter.ToSingle(bytes, 0);
+                            break;
+                        }
+                    case 5:
+                        {
+                            fieldValue = BitConverter.ToDouble(bytes, 0);
+                            break;
+                        }
                 }
-
-                idx += 16;
-
-                //Console.WriteLine("Starting data parse at position {0}", idx);
-
-                //// 561? 556?
-
-                //byte[] sampleBytes = new byte[561];
-                //Array.Copy(ibtBytes, idx, sampleBytes, 0, 561);
-
-                //foreach (FieldDescription field in Fields)
-                //{
-                //    byte[] fieldBytes = new byte[field.Size];
-                //    Array.Copy(ibtBytes, field.Position, fieldBytes, 0, field.Size);
-
-                //    field.bytes = fieldBytes;
-
-                //    var valString = String.Empty;
-                //    if (field.DataType == 1)
-                //    {
-                //        var i = BitConverter.ToBoolean(fieldBytes, 0);
-                //        valString = i.ToString();
-                //    }
-                //    else if (field.DataType == 2)
-                //    {
-                //        var i = BitConverter.ToSingle(fieldBytes, 0);
-                //        valString = i.ToString();
-                //    }
-                //    else if (field.DataType == 3)
-                //    {
-                //        var i = BitConverter.ToSingle(fieldBytes, 0);
-                //        valString = i.ToString();
-                //    }
-                //    else if (field.DataType == 4)
-                //    {
-                //        var i = ToSmallDecimal(fieldBytes);
-                //        //var i = BitConverter.ToSingle(fieldBytes, 0);
-                //        valString = i.ToString();
-                //    }
-                //    else if (field.DataType == 5)
-                //    {
-                //        var i = BitConverter.ToDouble(fieldBytes, 0);
-                //        valString = i.ToString();
-                //    }
-                //    Console.WriteLine("{0} {1}", field.Name, valString);
-                //}
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
+                return (T)fieldValue;
             }
         }
 
-        static void ParseFieldDescription(int idx)
+        public class TelemetryFrame
+        {
+            public IList<TelemetryFieldValue> FieldValues { get; set; }
+
+            public TelemetryFrame()
+            {
+                FieldValues = new List<TelemetryFieldValue>();
+            }
+        }
+
+        public class TelemetrySession
+        {
+            #region props
+            public IList<TelemetryFrame> Frames { get; set; }
+            public IList<TelemetryFieldDefinition> Fields { get; set; }
+            public string Yaml { get; set; }
+            #endregion
+
+            #region ctor
+            public TelemetrySession()
+            {
+                Frames = new List<TelemetryFrame>();
+                Fields = new List<TelemetryFieldDefinition>();
+            }
+            #endregion
+
+            #region ToString
+            public override string ToString()
+            {
+                return FieldsToString() + Environment.NewLine + ValuesToString();
+            }
+            public string ValuesToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                foreach (TelemetryFrame tout in Frames)
+                {
+                    foreach (TelemetryFieldValue tfv in tout.FieldValues)
+                    {
+                        sb.AppendFormat("{0}: {1} [{2}] ", tfv.Definition.Name, tfv.ByteString, tfv.Value);
+                    }
+                    sb.AppendLine();
+                }
+                return sb.ToString();
+            }
+            public string FieldsToString()
+            {
+                StringBuilder sb = new StringBuilder();
+                int fieldIdx = 0;
+                foreach (TelemetryFieldDefinition field in Fields)
+                {
+                    sb.AppendFormat("{0,-3}) {1,-32} {2,-64} {3,-32} {4,-4} {5,-4}", fieldIdx.ToString(), field.Name, field.Description, field.Unit, field.DataType.ToString(), field.Position.ToString());
+                    sb.AppendLine();
+                    fieldIdx++;
+                }
+                return sb.ToString();
+            }
+            #endregion
+        }
+        #endregion
+
+        #region fields
+        int fieldCount;
+        int frameCount;
+        private ASCIIEncoding _ascii = new ASCIIEncoding();
+        #endregion
+
+        #region props
+        public TelemetrySession Session { get; private set; }
+        #endregion
+
+        #region consts
+        const int FieldDescriptionLength = 144;
+        const int FieldDescriptionLengthStart = 0;
+        const int FieldDescriptionLengthLength = 2;
+        const int FieldDescriptionPositionStart = 4;
+        const int FieldDescriptionPositionLength = 2;
+        const int FieldDescriptionNameStart = 16;
+        const int FieldDescriptionNameLength = 32;
+        const int FieldDescriptionDescriptionStart = 48;
+        const int FieldDescriptionDescriptionLength = 64;
+        const int FieldDescriptionUnitStart = 112;
+        const int FieldDescriptionUnitLength = 32;
+        const int FieldCountStart = 24;
+        const int FieldCountLength = 2;
+        const int FrameCountStart = 140;
+        const int FrameCountLength = 2;
+        #endregion
+
+        #region public methods
+        public TelemetrySession ParseTelemetryFile(string fileName)
+        {
+            int idx = 0;
+            Session = new TelemetrySession();
+
+            byte[] telemetryFileBytes = System.IO.File.ReadAllBytes(fileName);
+
+            fieldCount = GetIntFromBytes(telemetryFileBytes, FieldCountStart, FieldCountLength);
+            frameCount = GetIntFromBytes(telemetryFileBytes, FrameCountStart, FrameCountLength);
+
+            ParseFieldDescriptionSection(telemetryFileBytes, ref idx);
+
+            ParseYamlSection(telemetryFileBytes, ref idx);
+
+            ParseValueSection(telemetryFileBytes, ref idx);
+            
+            return Session;
+        }
+        #endregion
+        
+        #region Field Description Section
+        void ParseFieldDescriptionSection(byte[] telemetryFileBytes, ref int idx)
+        {
+           for (int i = 0; i < fieldCount; i++)
+            {
+                idx = FieldDescriptionLength + (FieldDescriptionLength * i);
+                ParseFieldDescription(telemetryFileBytes, idx);
+            }
+            idx += FieldDescriptionLength;
+            idx++;
+        }
+
+        void ParseFieldDescription(byte[] telemetryFileBytes, int idx)
         {
             byte[] fieldDescriptionBytes = new byte[FieldDescriptionLength];
 
-            Array.Copy(ibtBytes, idx, fieldDescriptionBytes, 0, FieldDescriptionLength);
+            Array.Copy(telemetryFileBytes, idx, fieldDescriptionBytes, 0, FieldDescriptionLength);
 
-            FieldDescription field = new FieldDescription();
+            TelemetryFieldDefinition field = new TelemetryFieldDefinition();
 
             field.DataType = GetIntFromBytes(fieldDescriptionBytes, FieldDescriptionLengthStart, FieldDescriptionLengthLength);
             field.Position = GetIntFromBytes(fieldDescriptionBytes, FieldDescriptionPositionStart, FieldDescriptionPositionLength);
@@ -260,273 +345,119 @@ namespace ibtParserLibrary
             field.Description = GetTextFromBytes(fieldDescriptionBytes, FieldDescriptionDescriptionStart, FieldDescriptionDescriptionLength);
             field.Unit = GetTextFromBytes(fieldDescriptionBytes, FieldDescriptionUnitStart, FieldDescriptionUnitLength);
 
-            Fields.Add(field);
-
-            // Console.WriteLine("{0,-3}) {1,-32} {2,-64} {3,-32} {4,-4} {5,-4}", Fields.Count.ToString(), field.Name, field.Description, field.Unit, field.DataType.ToString(), field.Position.ToString());
+            Session.Fields.Add(field);
         }
 
-        static string GetTextFromBytes(byte[] bytes, int start, int length)
+        string GetTextFromBytes(byte[] bytes, int start, int length)
         {
-            return ascii.GetString(bytes, start, length).TrimEnd('\0');
+            return _ascii.GetString(bytes, start, length).TrimEnd('\0');
         }
 
-        static int GetIntFromBytes(byte[] bytes, int start, int length)
+        int GetIntFromBytes(byte[] bytes, int start, int length)
         {
             byte[] valueBytes = new byte[length];
             Array.Copy(bytes, start, valueBytes, 0, length);
             return (int)(valueBytes[0] + (256 * valueBytes[1]));
         }
+        #endregion
 
-        //static int GetIntFromBytes(byte[] bytes, int start, int length)
-        //{
-        //    byte[] valueBytes = new byte[length];
-        //    Array.Copy(bytes, start, valueBytes, 0, length);
-        //    int buffer = 0;
-        //    for (int i = 0; i < length; i++)
-        //    {
-        //        buffer += 
-        //    }
-
-        //    return (int)(valueBytes[0] + (256 * valueBytes[1]));
-        //}
-
-        public static void runtest()
+        #region YAML Section
+        void ParseYamlSection(byte[] telemetryFileBytes, ref int idx)
         {
-            decimal d = 6871.017M;
-            byte[] b = GetBytes(d);
-            for (int i = 0; i < b.Length; i++)
-            {
-                Console.Write(b[i].ToString("X"));
-                Console.Write(" ");
-            }
-            Console.WriteLine();
-            decimal d2 = ToDecimal(b);
-        }
-
-        public static decimal ToSmallDecimal(byte[] bytes)
-        {
-            int[] bits = new int[1];
-            bits[0] = ((bytes[0] | (bytes[1] << 8)) | (bytes[2] << 0x10)) | (bytes[3] << 0x18); //lo
-            //bits[1] = ((bytes[4] | (bytes[5] << 8)) | (bytes[6] << 0x10)) | (bytes[7] << 0x18); //mid
-            //bits[2] = ((bytes[8] | (bytes[9] << 8)) | (bytes[10] << 0x10)) | (bytes[11] << 0x18); //hi
-            //bits[3] = ((bytes[12] | (bytes[13] << 8)) | (bytes[14] << 0x10)) | (bytes[15] << 0x18); //flags
-
-            return new decimal(bits);
-        }
-
-
-        public static decimal ToDecimal(byte[] bytes)
-        {
-            int[] bits = new int[4];
-            bits[0] = ((bytes[0] | (bytes[1] << 8)) | (bytes[2] << 0x10)) | (bytes[3] << 0x18); //lo
-            bits[1] = ((bytes[4] | (bytes[5] << 8)) | (bytes[6] << 0x10)) | (bytes[7] << 0x18); //mid
-            bits[2] = ((bytes[8] | (bytes[9] << 8)) | (bytes[10] << 0x10)) | (bytes[11] << 0x18); //hi
-            bits[3] = ((bytes[12] | (bytes[13] << 8)) | (bytes[14] << 0x10)) | (bytes[15] << 0x18); //flags
-
-            return new decimal(bits);
-        }
-
-        public static byte[] GetBytes(decimal d)
-        {
-            byte[] bytes = new byte[16];
-
-            int[] bits = decimal.GetBits(d);
-            int lo = bits[0];
-            int mid = bits[1];
-            int hi = bits[2];
-            int flags = bits[3];
-
-            bytes[0] = (byte)lo;
-            bytes[1] = (byte)(lo >> 8);
-            bytes[2] = (byte)(lo >> 0x10);
-            bytes[3] = (byte)(lo >> 0x18);
-            bytes[4] = (byte)mid;
-            bytes[5] = (byte)(mid >> 8);
-            bytes[6] = (byte)(mid >> 0x10);
-            bytes[7] = (byte)(mid >> 0x18);
-            bytes[8] = (byte)hi;
-            bytes[9] = (byte)(hi >> 8);
-            bytes[10] = (byte)(hi >> 0x10);
-            bytes[11] = (byte)(hi >> 0x18);
-            bytes[12] = (byte)flags;
-            bytes[13] = (byte)(flags >> 8);
-            bytes[14] = (byte)(flags >> 0x10);
-            bytes[15] = (byte)(flags >> 0x18);
-
-            return bytes;
-        }
-
-
-        public static void FindFieldPattern(string fileName)
-        {
-            try
-            {
-                int dataStartIdx = 2;
-
-                ibtBytes = System.IO.File.ReadAllBytes(fileName);
-                Fields = new List<FieldDescription>();
-                fieldCount = GetIntFromBytes(ibtBytes, FieldCountStart, FieldCountLength);
-
-                // 20th group of 8 bytes starts the field descriptions
-
-                // ReSharper disable once ForCanBeConvertedToForeach
-                // ReSharper disable once SuggestVarOrType_BuiltInTypes
-                int idx = 0;
-                for (int i = 0; i < fieldCount; i++) // for (int i = 0; i < ibtBytes.Length; i++)
-                {
-                    idx = 144 + (144 * i);
-                    ParseFieldDescription(idx);
-                }
-
-                // skip text for now, log for three 46's in a row.
-
-                idx++;
-                while (true)
-                {
-                    idx++;
-                    if (ibtBytes[idx] == 46)
-                    {
-                        if ((ibtBytes[idx + 1] == 46) && (ibtBytes[idx + 2] == 46))
-                        {
-                            idx += 2;
-                            break;
-                        }
-                    }
-                }
-
-                dataStartIdx += idx;
-
-                // we're at the field data section here...
-                Console.WriteLine("Data values start at position {0}", dataStartIdx);
-                var valueLength = ibtBytes.Length - dataStartIdx;
-
-                byte[] v = new byte[valueLength];
-                Array.Copy(ibtBytes, dataStartIdx, v, 0, valueLength);
-
-                ParseValueSection(v, dataStartIdx);
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
-        }
-
-        static void ParseValueSection(byte[] v, int rootIdx)
-        {
-            
-
-            var width = Fields.Max((f) => f.Position + f.Size) ; // 645;// 561;
-            var startIdx = 0;
-            var frameCount = (width / v.Length);
-            List<Byte> startBytes = null;
-            List<byte[]> byteSets = new List<Byte[]>();
-
+            idx += 3; // skip the three '-' characters that denote the start of the YAML section.
+            int yamlStartIdx = idx;
+            // find the three '.' characters that denote the end of the YAML section.
             while (true)
             {
-                startBytes = new List<Byte>();
-                byte[] byteSet;
-
-                for (int z = startIdx; z < v.Length; z += width)
+                idx++;
+                if (telemetryFileBytes[idx] == 46)
                 {
-                    byteSet = new byte[width];
-                    Array.Copy(v, z, byteSet, 0, width);
-                    byteSets.Add(byteSet);
+                    if ((telemetryFileBytes[idx + 1] == 46) && (telemetryFileBytes[idx + 2] == 46))
+                    {
+                        idx += 3;
+                        break;
+                    }
+                }
+            }
+            int yamlLength = idx - yamlStartIdx - 3; // exclude the three '.' characters on the end.
+            Session.Yaml = GetTextFromBytes(telemetryFileBytes, yamlStartIdx, yamlLength);
+        }
+        #endregion
+
+        #region Value Section
+        int ParseValueSection(byte[] telemetryFileBytes, ref int dataStartIdx)
+        {
+                dataStartIdx += 1;
+                var valueLength = telemetryFileBytes.Length - dataStartIdx;
+                byte[] frameBytes = new byte[valueLength];
+                Array.Copy(telemetryFileBytes, dataStartIdx, frameBytes, 0, valueLength);
+                return ParseValues(frameBytes);
+        }
+
+        int ParseValues(byte[] valueSectionBytes)
+        {
+            var startIdx = 0;
+            byte[] frameBytes;
+            var frameSize = Session.Fields.Max((f) => f.Position + f.Size);
+        
+            while (true)
+            {
+                for (int frameByteIndex = startIdx; frameByteIndex < valueSectionBytes.Length - 1; frameByteIndex += frameSize)
+                {
+                    frameBytes = new byte[frameSize];
+                    Array.Copy(valueSectionBytes, frameByteIndex, frameBytes, 0, frameSize);
+
+                    var frame = new TelemetryFrame();
+                    foreach (TelemetryFieldDefinition field in Session.Fields)
+                    {
+                        TelemetryFieldValue fieldValue = new TelemetryFieldValue(field);
+                        fieldValue.Bytes = new byte[field.Size];
+                        Array.Copy(frameBytes, field.Position, fieldValue.Bytes, 0, field.Size);
+                        frame.FieldValues.Add(fieldValue);
+                    }
+
+                    Session.Frames.Add(frame);
                 }
                 break;
             }
-            List<byte> valueBytes = new List<Byte>();
-            for (int s = 0; s < byteSets.Count; s++)
-            {
-                valueBytes.AddRange(byteSets[s].ToArray());
-                byte cr = 10;
-                byte lf = 13;
-                valueBytes.Add(cr);
-                valueBytes.Add(lf);
-            }
-            System.IO.File.WriteAllBytes(@"C:\Users\rroberts\Source\Repos\ircc\src\ibtParser\ibtParserLibrary\Samples\dumpsk2.4.txt", valueBytes.ToArray());
 
-            TelemSession = new List<TelemetryOutput>();
-            for (int s = 0; s < byteSets.Count; s++)
-            {
-                var telemLine = new TelemetryOutput();
-
-                foreach (FieldDescription field in Fields)
-                {
-                    TelemFieldValue fv = new TelemFieldValue();
-                    fv.Name = field.Name;
-                    fv.DataType = field.DataType;
-                    fv.Description = field.Description;
-                    fv.Position = field.Position;
-                    fv.bytes = new byte[fv.Size];
-                    Array.Copy(byteSets[s], fv.Position, fv.bytes, 0, fv.Size);
-
-                    telemLine.FieldValues.Add(fv);
-                }
-
-                TelemSession.Add(telemLine);
-            }
-
-            StringBuilder sb = new StringBuilder();
-
-            foreach (TelemetryOutput tout in TelemSession)
-            {
-                foreach (TelemFieldValue tfv in tout.FieldValues)
-                {
-                    sb.AppendFormat("{0}: {1} ", tfv.Name, tfv.Value);
-                    if (tfv.DataType == 1)
-                    {
-                        var val = BitConverter.ToBoolean(tfv.bytes, 0);
-                        sb.AppendFormat("[{0}] ", val);
-                    }
-                    else if (tfv.DataType == 2)
-                    {
-                        var val = BitConverter.ToInt16(tfv.bytes, 0);
-                        sb.AppendFormat("[{0}] ", val);
-                    }
-                    else if (tfv.DataType == 3)
-                    {
-                        var val = BitConverter.ToInt16(tfv.bytes, 0);
-                        sb.AppendFormat("[{0}] ", val);
-                    }
-                    else if (tfv.DataType == 4)
-                    {
-                        var val = BitConverter.ToSingle(tfv.bytes, 0);
-                        sb.AppendFormat("[{0}] ", val);
-                    }
-                    else if (tfv.DataType == 5)
-                    {
-                        var val = BitConverter.ToDouble(tfv.bytes, 0);
-                        sb.AppendFormat("[{0}] ", val);
-                    }
-                }
-                sb.AppendLine();
-            }
-            System.IO.File.WriteAllText(@"C:\Users\rroberts\Source\Repos\ircc\src\ibtParser\ibtParserLibrary\Samples\dumpsk2.5.txt", sb.ToString());
-
+            return frameCount;
         }
 
-        static public int SearchBytePattern(byte[] pattern, byte[] bytes)
+        object GetFieldValue(int dataType, byte[] bytes)
         {
-            int matches = 0;
-            for (int i = 0; i < bytes.Length; i++)
+            object fieldValue = null;
+
+            switch (dataType)
             {
-                if (pattern[0] == bytes[i] && bytes.Length - i >= pattern.Length)
-                {
-                    bool ismatch = true;
-                    for (int j = 1; j < pattern.Length && ismatch == true; j++)
+                case 1:
                     {
-                        if (bytes[i + j] != pattern[j])
-                            ismatch = false;
+                        fieldValue = BitConverter.ToBoolean(bytes, 0);
+                        break;
                     }
-                    if (ismatch)
+                case 2:
                     {
-                        matches++;
-                        i += pattern.Length - 1;
+                        fieldValue = BitConverter.ToInt16(bytes, 0);
+                        break;
                     }
-                }
+                case 3:
+                    {
+                        fieldValue = BitConverter.ToInt16(bytes, 0);
+                        break;
+                    }
+                case 4:
+                    {
+                        fieldValue = BitConverter.ToSingle(bytes, 0);
+                        break;
+                    }
+                case 5:
+                    {
+                        fieldValue = BitConverter.ToDouble(bytes, 0);
+                        break;
+                    }
             }
-            return matches;
+            return fieldValue;
         }
+        #endregion    
     }
 }
