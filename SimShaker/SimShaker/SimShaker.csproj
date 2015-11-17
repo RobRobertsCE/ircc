@@ -33,6 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PresentationCore" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -53,6 +54,7 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="Logic\ARB.cs" />
     <Compile Include="Logic\ChassisDefinition.cs" />
     <Compile Include="Logic\Damper.cs" />
     <Compile Include="Logic\Modified.cs" />
@@ -60,9 +62,9 @@
     <Compile Include="Logic\SuspensionCorner.cs" />
     <Compile Include="Logic\Tire.cs" />
     <Compile Include="Logic\VehiclePlatform.cs" />
-    <Compile Include="Point3D.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ShakerEngine.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>

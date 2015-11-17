@@ -1,13 +1,7 @@
 ﻿using SimShaker.Logic;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Media.Media3D;
 
 namespace SimShaker
 {
@@ -25,35 +19,55 @@ namespace SimShaker
 
         private void button2_Click(object sender, EventArgs e)
         {
-            float x = (float).84 * trackX.Value - 42F;
-            float y = (float)1.05 * trackY.Value - 52.5F;
-            float z = (float)trackZ.Value;
+            Double x = (Double).84 * trackX.Value - 42F;
+            Double y = (Double)1.05 * trackY.Value - 52.5F;
+            Double z = (Double)trackZ.Value;
             var CG = new Point3D() { X = x, Y = y, Z = z };
             c = new Modified(2800, CG);
             c.EvaluateChange(trackDelta.Value);
-            var r = c.Report();
+            var r = c.ToString();
             txtReport.Text = r;
             Console.WriteLine(r);
         }
+
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            //ShakerEngine engine = new ShakerEngine();
+
+            Double x = (Double).84 * trackX.Value - 42F;
+            Double y = (Double)1.05 * trackY.Value - 52.5F;
+            Double z = (Double)trackZ.Value;
+            var CG = new Point3D() { X = x, Y = y, Z = z };
+
+            c = new Modified(2800, CG);
+            var r = c.ToString();
+            txtReport.Text = r;
+
+            c.EvaluateChange(new Vector3D(.8, 0, 0));
+            var r1 = c.ToString();
+            txtReport.Text += "\r\n" + r1;
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             EvaluateModified();
         }
         void EvaluateModified()
         {
-            float x = (float).84 * trackX.Value - 42F;
-            float y = (float)1.05 * trackY.Value - 52.5F;
-            float z = (float)trackZ.Value;
+            Double x = (Double).84 * trackX.Value - 42F;
+            Double y = (Double)1.05 * trackY.Value - 52.5F;
+            Double z = (Double)trackZ.Value;
             var CG = new Point3D() { X = x, Y = y, Z = z };
             c = new Modified(2800, CG);
-            var r = c.Report();
+            var r = c.ToString();
             txtReport.Text = r;
             Console.WriteLine(r);
         }
         void Evaluate(ChassisDefinition c)
         {
             c.Evaluate();
-            Console.WriteLine(c.Report());
+            Console.WriteLine(c.ToString());
         }
 
         private void track_Scroll(object sender, EventArgs e)

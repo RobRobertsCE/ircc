@@ -1,22 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SimShaker.Logic
 {
     internal class SuspensionCorner
     {
-        internal const float DEFAULT_SUSPENSION_STATIC_HEIGHT = 2F;
+        #region consts
+        internal const Double DEFAULT_SUSPENSION_WHEEL_RATIO = 1.0F;
+        #endregion
+
+        #region properties
         /// <summary>
         /// Static weight at this suspension corner
         /// </summary>
-        public float StaticWeight { get; set; }
+        public Double StaticWeight { get; set; }
         /// <summary>
         /// Static height at this suspension corner
         /// </summary>
-        public float StaticHeight
+        public Double StaticHeight
         {
             get
             {
@@ -38,73 +38,73 @@ namespace SimShaker.Logic
         /// <summary>
         /// Mechanical ratio of chassis-to-lower spring mount length versus chassis-to-tire contact patch length. (0.0-1.0)
         /// </summary>
-        public float WheelRatio { get; set; }
+        public Double WheelRatio { get; set; }
         /// <summary>
         /// Summary mathematical spring rate for for this suspension corner
         /// </summary>
-        public float WheelRate
+        public Double WheelRate
         {
             get
             {
                 return Tire.InstalledRate + Spring.InstalledRate;
             }
         }
+        Double _load;
         /// <summary>
         /// Dynamic weight on this suspension corner
         /// </summary>
-        public float Load
+        public Double Load
         {
             get
             {
-                //var kN = this.Tire.InstalledRate + this.Spring.InstalledRate;
-                //var k1 = this.Tire.InstalledRate / kN;
-                //var k2 = this.Spring.InstalledRate / kN;
-                //var l1 = this.Tire.Load * k1;
-                //var l2 = this.Spring.Load * k2;
-                //return l1 + l2;
-                return this.Tire.Load + this.Spring.Load;
+                return _load;
             }
             set
             {
+                _load = value;
                 DistributeLoad(value);
             }
         }
         /// <summary>
         /// Change in height of suspension corner
         /// </summary>
-        public float Travel
+        public Double Travel
         {
             get
             {
-                return StaticHeight;
+                return DynamicHeight - StaticHeight;
             }
         }
-
-        public float DynamicHeight
+        /// <summary>
+        /// Height of the suspension with dynamic loads applied
+        /// </summary>
+        public Double DynamicHeight
         {
             get
             {
                 return this.Spring.DynamicHeight + this.Tire.DynamicHeight;
             }
         }
+        #endregion
 
-        public SuspensionCorner(float staticWeight)
+        #region ctor
+        public SuspensionCorner(Double staticWeight, Double SpringRate)
         {
             this.StaticWeight = staticWeight;
-            this.Spring = new Spring(staticWeight);
+            this.Spring = new Spring(staticWeight, SpringRate);
             this.Tire = new Tire(staticWeight, 20F);
             this.Damper = new Damper();
+            this.Load = StaticWeight;
+            this.WheelRatio = DEFAULT_SUSPENSION_WHEEL_RATIO;
         }
+        #endregion
 
-        void DistributeLoad(float F)
+        #region private
+        void DistributeLoad(Double F)
         {
-            // f/k1 + f/k2
-            // divide the force among the two 'springs', the spring and the tire.
-            var kN = this.Tire.InstalledRate + this.Spring.InstalledRate;
-            var k1 = this.Tire.InstalledRate / kN;
-            var k2 = this.Spring.InstalledRate / kN;
-            this.Tire.Load += F * k1;
-            this.Spring.Load += F * k2;
+            this.Tire.Load = F * WheelRatio;
+            this.Spring.Load = F;
         }
+        #endregion
     }
 }
